@@ -1,0 +1,178 @@
+controller_frequency: 10.0
+global_plan_topic: global_plan
+global_plan_type: Path3D
+global_plan_epsilon: -1.0
+twist_topic: cmd_vel
+twist_type: Twist3D
+
+global_costmap:
+  global_frame: map
+  robot_base_frame: base_link
+  rolling_window: false
+  track_unknown_space: true
+  always_send_full_costmap: false
+  footprint_topic: "footprint"
+  width: 15
+  height: 15
+  origin_x: -7.5
+  origin_y: -7.5
+  resolution: 0.07
+  update_frequency: 0.1
+  publish_frequency: 0.0
+
+  footprint: [[0.11,0.15],[0.11,-0.15],[-0.27,-0.15],[-0.27,0.15]]
+  footprint_padding: 0.01  
+
+  static_layer:
+    map_topic: map
+    first_map_only: true
+    subscribe_to_updates: false
+    use_maximum: false
+    lethal_cost_threshold: 100
+    unknown_cost_value: -1
+    trinary_costmap: true
+
+  inflation_layer:
+    cost_scaling_factor: 10.0
+    inflation_radius: 2.0
+    inflate_unknown: false
+
+  plugins:
+   - {name: static_layer, type: "costmap_2d::StaticLayer"}
+   - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
+   - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+
+local_costmap:
+  global_frame: map
+  robot_base_frame: base_link
+  track_unknown_space: false
+  always_send_full_costmap: true
+  footprint_topic: "footprint"
+  width: 3
+  height: 3
+  origin_x: -1.5
+  origin_y: -1.5
+  resolution: 0.02
+  update_frequency: 4.0
+  publish_frequency: 4.0
+  rolling_window: true
+
+  footprint: [[0.11,0.15],[0.11,-0.15],[-0.27,-0.15],[-0.27,0.15]]
+  footprint_padding: 0.01
+
+  obstacle_layer:
+    transform_tolerance: 0.2
+    observation_sources: scan_sensor
+    scan_sensor: {
+      topic: scan,
+      sensor_frame: d435_link,
+      observation_persistence: 0.0,
+      expected_update_rate: 0.0,
+      data_type: LaserScan,
+      min_obstacle_height: 0.0,
+      max_obstacle_height: 2.0,
+      inf_is_valid: true,
+      clearing: true,
+      marking: true
+    }
+    obstacle_range: 1.5
+    raytrace_range: 2.0
+
+  inflation_layer:
+    cost_scaling_factor: 4.0
+    inflation_radius: 1.75
+    inflate_unknown: false
+
+  plugins:
+   - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
+   - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+
+DluxGlobalPlanner:
+  neutral_cost: 50
+  scale: 3.0
+  unknown_interpretation: lethal
+  path_caching: false
+  improvement_threshold: -1.0
+  publish_potential: false
+  print_statistics: false
+  potential_calculator: dlux_plugins::AStar
+  traceback: dlux_plugins::GradientPath
+
+  # AStar
+  manhattan_heuristic: false
+  use_kernel: true
+  minimum_requeue_change: 1.0
+
+  # GradientPath
+  step_size: 0.5
+  lethal_cost: 250.0
+  iteration_factor: 4.0
+  grid_step_near_high: false
+
+DWBLocalPlanner:
+  update_costmap_before_planning: true
+  prune_plan: true
+  prune_distance: 1.0
+  short_circuit_trajectory_evaluation: true
+  debug_trajectory_details: false
+
+  trajectory_generator_name: dwb_plugins::LimitedAccelGenerator
+  # velocities
+  min_vel_x: -0.3
+  max_vel_x: 0.3
+  min_vel_y: 0.0
+  max_vel_y: 0.0
+  max_vel_theta: 2.0
+  # acceleration
+  acc_lim_x: 0.357823171
+  acc_lim_y: 0.0
+  acc_lim_theta: 8.731380878
+  # deceleration
+  decel_lim_x: -1.20849956
+  decel_lim_y: 0.0
+  decel_lim_theta: -10.948097518
+  # absolute speeds (in either direction)
+  min_speed_xy: 0.1
+  max_speed_xy: 0.3
+  min_speed_theta: 0.3
+
+  goal_checker_name: dwb_plugins::StoppedGoalChecker
+  trans_stopped_velocity: 0.1
+  rot_stopped_velocity: 0.3
+
+  critics:
+#  - PreferForward
+  - RotateToGoal
+  - Oscillation
+  - ObstacleFootprint
+  - GoalAlign
+  - PathAlign
+  - PathDist
+  - GoalDist
+
+  # RotateToGoal critic
+  RotateToGoal:
+    xy_goal_tolerance: 0.25
+    trans_stopped_velocity: 0.25
+    slowing_factor: 5.0
+    lookahead_time: -1.0
+
+  # Oscillation critic
+  Oscillation:
+    x_only_threshold: 0.05
+    oscillation_reset_dist: 0.05
+    oscillation_reset_angle: 0.2
+    oscillation_reset_time: -1.0
+
+  # ObstacleFootprint critic
+  ObstacleFootprint:
+    footprint: [[0.11,0.15],[0.11,-0.15],[-0.27,-0.15],[-0.27,0.15]]
+    sum_scores: false
+
+  # GoalAlign critic
+  GoalAlign:
+    forward_point_distance: 0.325
+
+  # PathAlign critic
+  PathAlign:
+    forward_point_distance: 0.325

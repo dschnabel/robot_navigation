@@ -1,0 +1,11 @@
+<launch>
+  <node name="goalListener" pkg="locomotor" type="goalListener.py" output="screen" />
+
+  <!-- "gdbserver :1234" -->
+  <arg name="prefix" default="" />
+<!--  <node name="locomotor" pkg="locomotor" type="locomotor1" output="screen" launch-prefix="gdbserver :1234"> -->
+  <node name="locomotor" pkg="locomotor" type="locomotor1" output="screen" launch-prefix="$(arg prefix)">
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find locomotor)/launch/debug.conf"/>
+    <rosparam file="$(find locomotor)/launch/rovy.yaml" command="load"/>
+  </node>
+</launch>
