@@ -163,6 +163,13 @@ protected:
   {
     ROS_INFO_NAMED("Locomotor", "Plan completed! Stopping.");
     control_loop_timer_.stop();
+
+    nav_2d_msgs::Twist2DStamped cmd_vel;
+    cmd_vel.header.stamp = ros::Time::now();
+    cmd_vel.velocity.x = 0;
+    cmd_vel.velocity.theta = 0;
+    locomotor_.publishTwist(cmd_vel);
+
     as_.completeNavigation();
   }
 
