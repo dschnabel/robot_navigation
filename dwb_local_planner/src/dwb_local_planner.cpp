@@ -47,6 +47,8 @@
 #include <utility>
 #include <vector>
 
+//#define ROVY_DEBUG
+
 namespace dwb_local_planner
 {
 
@@ -239,7 +241,7 @@ nav_2d_msgs::Twist2DStamped DWBLocalPlanner::computeVelocityCommands(const nav_2
 
   try
   {
-    dwb_msgs::TrajectoryScore best = coreScoringAlgorithm(pose.pose, velocity, results);
+    dwb_msgs::TrajectoryScore best = coreScoringAlgorithm(pose, velocity, results);
 
     // Return Value
     nav_2d_msgs::Twist2DStamped cmd_vel;
@@ -273,7 +275,7 @@ nav_2d_msgs::Twist2DStamped DWBLocalPlanner::computeVelocityCommands(const nav_2
   }
 }
 
-dwb_msgs::TrajectoryScore DWBLocalPlanner::coreScoringAlgorithm(const geometry_msgs::Pose2D& pose,
+dwb_msgs::TrajectoryScore DWBLocalPlanner::coreScoringAlgorithm(const nav_2d_msgs::Pose2DStamped& pose,
                                                                 const nav_2d_msgs::Twist2D velocity,
                                                                 std::shared_ptr<dwb_msgs::LocalPlanEvaluation>& results)
 {
@@ -284,15 +286,48 @@ dwb_msgs::TrajectoryScore DWBLocalPlanner::coreScoringAlgorithm(const geometry_m
   worst.total = -1;
   IllegalTrajectoryTracker tracker;
 
+#ifdef ROVY_DEBUG
+  static bool started = false;
+  static int set = 0;
+  static std::ofstream trajFile;
+  static std::ofstream trajSizes;
+  if (set == 0) {
+      remove("/tmp/trajectories.bin");
+      remove("/tmp/trajectories.txt");
+      trajFile = std::ofstream("/tmp/trajectories.bin", std::ios::out|std::ios::binary);
+      trajSizes = std::ofstream("/tmp/trajectories.txt", std::ios::out);
+  }
+  int trajCount = 0;
+#endif
+
   traj_generator_->startNewIteration(velocity);
   while (traj_generator_->hasMoreTwists())
   {
     twist = traj_generator_->nextTwist();
-    traj = traj_generator_->generateTrajectory(pose, velocity, twist);
+    traj = traj_generator_->generateTrajectory(pose.pose, velocity, twist);
 
     try
     {
       dwb_msgs::TrajectoryScore score = scoreTrajectory(traj, best.total);
+
+#ifdef ROVY_DEBUG
+      if (access("/tmp/dwb", F_OK ) != -1) {
+          nav_msgs::Path path = nav_2d_utils::poses2DToPath(traj.poses, pose.header.frame_id, pose.header.stamp);
+          uint32_t serial_size = ros::serialization::serializationLength(path);
+          boost::shared_array<uint8_t> buffer(new uint8_t[serial_size]);
+          ros::serialization::OStream stream(buffer.get(), serial_size);
+          ros::serialization::serialize(stream, path);
+          trajFile.write((char*) buffer.get(), serial_size);
+          trajSizes << serial_size << ", set: " << set;
+          for (auto s : score.scores) trajSizes << ", " << s.name << ":" << s.raw_score*s.scale;
+          trajSizes << ", poses:" << traj.poses.size() << ", total:" << score.total << std::endl;
+          trajCount++;
+          started = true;
+      } else {
+          started = false;
+      }
+#endif
+
       tracker.addLegalTrajectory();
       if (results)
       {
@@ -332,6 +367,17 @@ dwb_msgs::TrajectoryScore DWBLocalPlanner::coreScoringAlgorithm(const geometry_m
       tracker.addIllegalTrajectory(e);
     }
   }
+
+#ifdef ROVY_DEBUG
+  if (started) {
+      set++;
+  } else if (set > 0) {
+      std::cout << "ended" << std::endl;
+      trajSizes.close();
+      trajFile.close();
+      throw std::runtime_error("debug out");
+  }
+#endif
 
   if (best.total < 0)
   {

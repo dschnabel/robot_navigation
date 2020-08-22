@@ -151,7 +151,7 @@ protected:
   /**
    * @brief Iterate through all the twists and find the best one
    */
-  virtual dwb_msgs::TrajectoryScore coreScoringAlgorithm(const geometry_msgs::Pose2D& pose,
+  virtual dwb_msgs::TrajectoryScore coreScoringAlgorithm(const nav_2d_msgs::Pose2DStamped& pose,
                                                          const nav_2d_msgs::Twist2D velocity,
                                                          std::shared_ptr<dwb_msgs::LocalPlanEvaluation>& results);
 

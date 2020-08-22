@@ -43,10 +43,8 @@ namespace dwb_critics
 
 void PreferForwardCritic::onInit()
 {
-  critic_nh_.param("penalty", penalty_, 1.0);
-  critic_nh_.param("strafe_x", strafe_x_, 0.1);
-  critic_nh_.param("strafe_theta", strafe_theta_, 0.2);
-  critic_nh_.param("theta_scale", theta_scale_, 10.0);
+  critic_nh_.param("backward_cost", backwardCost_, 1.0);
+  critic_nh_.param("forward_cost", forwardCost_, 0.0);
 }
 
 double PreferForwardCritic::scoreTrajectory(const dwb_msgs::Trajectory2D& traj)
@@ -54,16 +52,10 @@ double PreferForwardCritic::scoreTrajectory(const dwb_msgs::Trajectory2D& traj)
   // backward motions bad on a robot without backward sensors
   if (traj.velocity.x < 0.0)
   {
-    return penalty_;
+    return backwardCost_;
+  } else {
+      return forwardCost_;
   }
-  // strafing motions also bad on such a robot
-  if (traj.velocity.x < strafe_x_ && fabs(traj.velocity.theta) < strafe_theta_)
-  {
-    return penalty_;
-  }
-
-  // the more we rotate, the less we progress forward
-  return fabs(traj.velocity.theta) * theta_scale_;
 }
 
 } /* namespace dwb_critics */
