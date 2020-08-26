@@ -42,6 +42,12 @@
 #include <memory>
 #include <vector>
 
+//#define ROVY_VIZ
+
+#ifdef ROVY_VIZ
+#include <visualization_msgs/Marker.h>
+#endif
+
 namespace dwb_local_planner
 {
 
@@ -83,6 +89,9 @@ public:
   void publishLocalPlan(const nav_2d_msgs::Path2D plan);
   void publishInputParams(const nav_grid::NavGridInfo& info, const geometry_msgs::Pose2D& start_pose,
                           const nav_2d_msgs::Twist2D& velocity, const geometry_msgs::Pose2D& goal_pose);
+#ifdef ROVY_VIZ
+  void pulishObstacleCheckMarkers(const visualization_msgs::Marker& test);
+#endif
 
 protected:
   void publishTrajectories(const dwb_msgs::LocalPlanEvaluation& results);
@@ -100,6 +109,9 @@ protected:
   // Publisher Objects
   ros::Publisher eval_pub_, global_pub_, transformed_pub_, local_pub_, marker_pub_, cost_grid_pc_pub_,
                  info_pub_, pose_pub_, goal_pub_, velocity_pub_;
+#ifdef ROVY_VIZ
+  ros::Publisher ob_check_pub_;
+#endif
 };
 
 }  // namespace dwb_local_planner

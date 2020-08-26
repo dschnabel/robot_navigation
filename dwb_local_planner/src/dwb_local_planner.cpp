@@ -38,6 +38,7 @@
 #include <dwb_local_planner/illegal_trajectory_tracker.h>
 #include <nav_2d_utils/conversions.h>
 #include <nav_2d_utils/tf_help.h>
+#include <nav_grid/coordinate_conversion.h>
 #include <nav_2d_msgs/Twist2D.h>
 #include <dwb_msgs/CriticScore.h>
 #include <pluginlib/class_list_macros.h>
@@ -218,6 +219,10 @@ void DWBLocalPlanner::prepare(const nav_2d_msgs::Pose2DStamped& pose, const nav_
                         local_goal_pose = transformPoseToLocal(goal_pose_);
 
   pub_.publishInputParams(costmap_->getInfo(), local_start_pose, velocity, local_goal_pose);
+
+  if (!testGlobalPathForObstacle(transformed_plan, local_start_pose)) {
+      throw nav_core2::PlannerException("Detected obstacle in path.");
+  }
 
   for (TrajectoryCritic::Ptr critic : critics_)
   {
@@ -523,6 +528,137 @@ nav_2d_msgs::Path2D DWBLocalPlanner::transformGlobalPlan(const nav_2d_msgs::Pose
 geometry_msgs::Pose2D DWBLocalPlanner::transformPoseToLocal(const nav_2d_msgs::Pose2DStamped& pose)
 {
   return nav_2d_utils::transformStampedPose(tf_, pose, costmap_->getFrameId());
+}
+
+bool DWBLocalPlanner::testGlobalPathForObstacle(
+        const nav_2d_msgs::Path2D& globalPlan, const geometry_msgs::Pose2D& pose) {
+
+    size_t maxPosition = globalPlan.poses.size() - 1;
+    size_t startPosition = getClosestPointOnPath(globalPlan, maxPosition, pose);
+    const nav_core2::Costmap& costmap = *costmap_;
+
+#ifdef ROVY_VIZ
+    visualization_msgs::Marker points;
+    points.header.frame_id = "map";
+    points.header.stamp = ros::Time::now();
+    points.action = visualization_msgs::Marker::ADD;
+    points.type = visualization_msgs::Marker::POINTS;
+    points.scale.x = 0.01; points.scale.y = 0.01;
+    points.color.r = 1.0f; points.color.a = 1.0;
+#endif
+
+    for (size_t i = startPosition; i <= startPosition + 60; i+=15) {
+        if (i > maxPosition-1) break;
+
+        auto &p1 = globalPlan.poses[i];
+        auto &p2 = globalPlan.poses[i+1];
+        double perpAngle = atan2(p1.y-p2.y, p1.x-p2.x) + M_PI_2;
+        if (perpAngle > M_PI) perpAngle -= M_PI;
+
+        // 'dist' is the distance (in m) from the global plan perpendicular in one direction
+        // dist * 2 is essentially the width of area that is checked
+        for (double dist = -0.15; dist <= 0.15; dist += 0.0333) {
+            auto fp = getForwardPose(p1.x, p1.y, perpAngle, dist);
+
+            unsigned int cell_x, cell_y;
+            worldToGridBounded(costmap.getInfo(), fp.x, fp.y, cell_x, cell_y);
+            unsigned char cost = costmap(cell_x, cell_y);
+            if (cost == costmap.LETHAL_OBSTACLE
+                    || cost == costmap.INSCRIBED_INFLATED_OBSTACLE
+                    || cost == costmap.NO_INFORMATION) {
+
+#ifdef ROVY_VIZ
+                geometry_msgs::Point po;
+                po.x = fp.x;
+                po.y = fp.y;
+                po.z = 0;
+                points.points.push_back(po);
+#endif
+
+                return false;
+            }
+        }
+    }
+
+#ifdef ROVY_VIZ
+    pub_.pulishObstacleCheckMarkers(points);
+#endif
+
+    return true;
+}
+
+size_t DWBLocalPlanner::getClosestPointOnPath(
+        const nav_2d_msgs::Path2D& globalPlan, size_t maxPos, const geometry_msgs::Pose2D& pose) {
+
+    size_t pathLength = maxPos;
+    float precision = 8.0;
+    size_t bestLength = pathLength;
+    double bestDistance = INFINITY;
+
+    geometry_msgs::Pose2D p = getForwardPose(pose, 0.30);
+
+    // linear scan for coarse approximation
+    for (size_t scanLength = 0; scanLength <= pathLength; scanLength += precision) {
+        if (scanLength > pathLength) break;
+        const geometry_msgs::Pose2D* scan = &globalPlan.poses[scanLength];
+        double scanDistance = getSquareDistance(*scan, p);
+        if (scanDistance < bestDistance) {
+            bestLength = scanLength;
+            bestDistance = scanDistance;
+        }
+    }
+
+    // binary search for precise estimate
+    precision /= 2;
+    while (precision > 0.5) {
+        const geometry_msgs::Pose2D *before, *after;
+        size_t beforeLength, afterLength;
+        double beforeDistance, afterDistance;
+
+        bool a = (beforeLength = bestLength - precision) >= 0;
+        bool b = false;
+        if (a) {
+            before = &globalPlan.poses[beforeLength];
+            beforeDistance = getSquareDistance(*before, p);
+            if (beforeDistance < bestDistance) {
+                b = true;
+            }
+        }
+        if (a && b) {
+            bestLength = beforeLength;
+            bestDistance = beforeDistance;
+        } else {
+            a = (afterLength = bestLength + precision) <= pathLength;
+            b = false;
+            if (a) {
+                after = &globalPlan.poses[afterLength];
+                afterDistance = getSquareDistance(*after, p);
+                if (afterDistance < bestDistance) {
+                    b = true;
+                }
+            }
+            if (a && b) {
+                bestLength = afterLength;
+                bestDistance = afterDistance;
+            }  else {
+                precision /= 2;
+            }
+        }
+    }
+
+    return bestLength;
+}
+
+geometry_msgs::Pose2D DWBLocalPlanner::getForwardPose(const geometry_msgs::Pose2D& pose, double distance) {
+    return getForwardPose(pose.x, pose.y, pose.theta, distance);
+}
+
+geometry_msgs::Pose2D DWBLocalPlanner::getForwardPose(double x, double y, double theta, double distance) {
+    geometry_msgs::Pose2D forward_pose;
+    forward_pose.x = x + distance * cos(theta);
+    forward_pose.y = y + distance * sin(theta);
+    forward_pose.theta = theta;
+    return forward_pose;
 }
 
 }  // namespace dwb_local_planner

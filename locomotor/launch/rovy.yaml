@@ -17,11 +17,11 @@ global_costmap:
   origin_x: -7.5
   origin_y: -7.5
   resolution: 0.07
-  update_frequency: 0.1
-  publish_frequency: 0.0
+  update_frequency: 2.0
+  publish_frequency: 2.0
 
   footprint: [[0.11,0.15],[0.11,-0.15],[-0.27,-0.15],[-0.27,0.15]]
-  footprint_padding: 0.01  
+  footprint_padding: 0.02
 
   static_layer:
     map_topic: map
@@ -41,8 +41,8 @@ global_costmap:
       observation_persistence: 0.0,
       expected_update_rate: 0.0,
       data_type: LaserScan,
-      min_obstacle_height: 0.0,
-      max_obstacle_height: 2.0,
+      min_obstacle_height: -10.0,
+      max_obstacle_height: 10.0,
       inf_is_valid: true,
       clearing: true,
       marking: true
@@ -51,7 +51,7 @@ global_costmap:
     raytrace_range: 2.0
 
   inflation_layer:
-    cost_scaling_factor: 10.0
+    cost_scaling_factor: 15.0
     inflation_radius: 2.0
     inflate_unknown: false
 
@@ -76,7 +76,7 @@ local_costmap:
   rolling_window: true
 
   footprint: [[0.11,0.15],[0.11,-0.15],[-0.27,-0.15],[-0.27,0.15]]
-  footprint_padding: 0.01
+  footprint_padding: 0.02
 
   obstacle_layer:
     transform_tolerance: 0.2
@@ -87,9 +87,9 @@ local_costmap:
       observation_persistence: 0.0,
       expected_update_rate: 0.0,
       data_type: LaserScan,
-      min_obstacle_height: 0.0,
-      max_obstacle_height: 2.0,
-      inf_is_valid: true,
+      min_obstacle_height: -10.0,
+      max_obstacle_height: 10.0,
+      inf_is_valid: false,
       clearing: true,
       marking: true
     }
@@ -97,7 +97,7 @@ local_costmap:
     raytrace_range: 2.0
 
   inflation_layer:
-    cost_scaling_factor: 10.0
+    cost_scaling_factor: 15.0
     inflation_radius: 2.0
     inflate_unknown: false
 
@@ -204,11 +204,11 @@ DWBLocalPlanner:
   # PathAlign critic
   PathAlign:
     forward_point_distance: 0.125
-    scale: 2.0
+    scale: 3.0
 
   # PathDist critic
   PathDist:
-    scale: 1.0
+    scale: 4.0
   
   # GoalDist
   GoalDist:

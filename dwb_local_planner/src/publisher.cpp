@@ -83,6 +83,10 @@ void DWBPublisher::initialize(ros::NodeHandle& nh)
   nh.param("publish_cost_grid_pc", publish_cost_grid_pc_, false);
   if (publish_cost_grid_pc_)
     cost_grid_pc_pub_ = nh.advertise<sensor_msgs::PointCloud2>("cost_cloud", 1);
+
+#ifdef ROVY_VIZ
+  ob_check_pub_ = nh.advertise<visualization_msgs::Marker>("obstacle_checker", 1);
+#endif
 }
 
 void DWBPublisher::publishEvaluation(std::shared_ptr<dwb_msgs::LocalPlanEvaluation> results)
@@ -242,5 +246,11 @@ void DWBPublisher::publishInputParams(const nav_grid::NavGridInfo& info, const g
   goal_pub_.publish(goal_pose);
   velocity_pub_.publish(velocity);
 }
+
+#ifdef ROVY_VIZ
+void DWBPublisher::pulishObstacleCheckMarkers(const visualization_msgs::Marker& test) {
+    ob_check_pub_.publish(test);
+}
+#endif
 
 }  // namespace dwb_local_planner

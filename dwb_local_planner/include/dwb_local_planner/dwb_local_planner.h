@@ -209,6 +209,13 @@ protected:
   DWBPublisher pub_;
 
   ros::NodeHandle planner_nh_;
+
+private:
+  bool testGlobalPathForObstacle(const nav_2d_msgs::Path2D& globalPlan, const geometry_msgs::Pose2D& pose);
+  size_t getClosestPointOnPath(const nav_2d_msgs::Path2D& globalPlan, size_t maxPos,
+          const geometry_msgs::Pose2D& pose);
+  geometry_msgs::Pose2D getForwardPose(const geometry_msgs::Pose2D& pose, double distance);
+  geometry_msgs::Pose2D getForwardPose(double x, double y, double theta, double distance);
 };
 
 }  // namespace dwb_local_planner
