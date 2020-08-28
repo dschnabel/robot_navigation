@@ -557,7 +557,7 @@ bool DWBLocalPlanner::testGlobalPathForObstacle(
 
         // 'dist' is the distance (in m) from the global plan perpendicular in one direction
         // dist * 2 is essentially the width of area that is checked
-        for (double dist = -0.15; dist <= 0.15; dist += 0.0333) {
+        for (double dist = -0.10; dist <= 0.10; dist += 0.066) {
             auto fp = getForwardPose(p1.x, p1.y, perpAngle, dist);
 
             unsigned int cell_x, cell_y;

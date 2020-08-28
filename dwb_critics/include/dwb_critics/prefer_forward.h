@@ -53,12 +53,18 @@ namespace dwb_critics
 class PreferForwardCritic: public dwb_local_planner::TrajectoryCritic
 {
 public:
-  PreferForwardCritic() : backwardCost_(1.0), forwardCost_(0.0) {}
+  PreferForwardCritic() :
+      backwardCost_(1.0), forwardCost_(0.0), startTheta_(0.0), startRotationReached_(false) {}
   void onInit() override;
+  bool prepare(const geometry_msgs::Pose2D& pose, const nav_2d_msgs::Twist2D& vel,
+               const geometry_msgs::Pose2D& goal, const nav_2d_msgs::Path2D& global_plan) override;
   double scoreTrajectory(const dwb_msgs::Trajectory2D& traj) override;
+  void reset() override;
 
 protected:
   double backwardCost_, forwardCost_;
+  double startTheta_;
+  bool startRotationReached_;
 };
 
 } /* namespace dwb_critics */
