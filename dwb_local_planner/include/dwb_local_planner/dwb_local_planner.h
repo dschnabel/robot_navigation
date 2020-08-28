@@ -110,6 +110,8 @@ public:
    */
   bool isGoalReached(const nav_2d_msgs::Pose2DStamped& pose, const nav_2d_msgs::Twist2D& velocity) override;
 
+  void setPlanningError(bool isError) override;
+
   /**
    * @brief Score a given command. Can be used for testing.
    *
@@ -216,6 +218,8 @@ private:
           const geometry_msgs::Pose2D& pose);
   geometry_msgs::Pose2D getForwardPose(const geometry_msgs::Pose2D& pose, double distance);
   geometry_msgs::Pose2D getForwardPose(double x, double y, double theta, double distance);
+
+  double globalPathMaxCheckWidth_;
 };
 
 }  // namespace dwb_local_planner

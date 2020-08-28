@@ -107,6 +107,8 @@ public:
    * @return           True if the goal conditions have been met
    */
   virtual bool isGoalReached(const nav_2d_msgs::Pose2DStamped& pose, const nav_2d_msgs::Twist2D& velocity) = 0;
+
+  virtual void setPlanningError(bool isError) = 0;
 };
 }  // namespace nav_core2
 

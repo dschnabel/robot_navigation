@@ -49,6 +49,7 @@
 #include <vector>
 
 //#define ROVY_DEBUG
+#define ROVY_PATH_WIDTH 0.10
 
 namespace dwb_local_planner
 {
@@ -56,7 +57,8 @@ namespace dwb_local_planner
 DWBLocalPlanner::DWBLocalPlanner() :
   traj_gen_loader_("dwb_local_planner", "dwb_local_planner::TrajectoryGenerator"),
   goal_checker_loader_("dwb_local_planner", "dwb_local_planner::GoalChecker"),
-  critic_loader_("dwb_local_planner", "dwb_local_planner::TrajectoryCritic")
+  critic_loader_("dwb_local_planner", "dwb_local_planner::TrajectoryCritic"),
+  globalPathMaxCheckWidth_(ROVY_PATH_WIDTH)
 {
 }
 
@@ -160,6 +162,17 @@ bool DWBLocalPlanner::isGoalReached(const nav_2d_msgs::Pose2DStamped& pose, cons
     ROS_INFO_THROTTLE_NAMED(1.0, "DWBLocalPlanner", "Goal reached!");
   }
   return ret;
+}
+
+void DWBLocalPlanner::setPlanningError(bool isError) {
+    //globalPathMaxCheckWidth_
+    if (isError) {
+        globalPathMaxCheckWidth_ -= 0.01;
+        if (globalPathMaxCheckWidth_ <= 0) globalPathMaxCheckWidth_ = 0.001;
+    } else {
+        globalPathMaxCheckWidth_ += 0.01;
+        if (globalPathMaxCheckWidth_ > ROVY_PATH_WIDTH) globalPathMaxCheckWidth_ = ROVY_PATH_WIDTH;
+    }
 }
 
 void DWBLocalPlanner::setGoalPose(const nav_2d_msgs::Pose2DStamped& goal_pose)
@@ -557,7 +570,10 @@ bool DWBLocalPlanner::testGlobalPathForObstacle(
 
         // 'dist' is the distance (in m) from the global plan perpendicular in one direction
         // dist * 2 is essentially the width of area that is checked
-        for (double dist = -0.10; dist <= 0.10; dist += 0.066) {
+        double max_dist = globalPathMaxCheckWidth_;
+        double dist_step = (max_dist * 2) / 4;
+        for (double dist = -max_dist; dist <= max_dist; dist += dist_step) {
+            if (dist_step == 0) break;
             auto fp = getForwardPose(p1.x, p1.y, perpAngle, dist);
 
             unsigned int cell_x, cell_y;

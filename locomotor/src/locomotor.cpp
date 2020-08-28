@@ -220,11 +220,17 @@ void Locomotor::makeLocalPlan(Executor& result_ex, LocalPlanCallback cb, Planner
       state_.command_velocity = local_planner.computeVelocityCommands(state_.local_pose,
                                                                       state_.current_velocity.velocity);
       lock.unlock();
+
+      local_planner.setPlanningError(false);
+
       if (cb) result_ex.addCallback(std::bind(cb, state_.command_velocity, getTimeDiffFromNow(start_t)));
     }
     catch (const nav_core2::PlannerException& e)
     {
       lock.unlock();
+
+      local_planner.setPlanningError(true);
+
       if (fail_cb)
         result_ex.addCallback(std::bind(fail_cb, std::current_exception(), getTimeDiffFromNow(start_t)));
     }

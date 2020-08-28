@@ -204,7 +204,7 @@ DWBLocalPlanner:
   # PathAlign critic
   PathAlign:
     forward_point_distance: 0.125
-    scale: 3.0
+    scale: 4.0
 
   # PathDist critic
   PathDist:
