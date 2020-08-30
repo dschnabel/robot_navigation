@@ -40,6 +40,7 @@ add_library(${PROJECT_NAME}
     src/oscillation.cpp
     src/prefer_forward.cpp
     src/rotate_to_goal.cpp
+    src/rotate_to_start.cpp
     src/twirling.cpp
 )
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})

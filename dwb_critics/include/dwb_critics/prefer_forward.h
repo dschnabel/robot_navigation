@@ -43,28 +43,20 @@ namespace dwb_critics
 
 /**
  * @class PreferForwardCritic
- * @brief Penalize trajectories with move backwards and/or turn too much
+ * @brief Penalize trajectories with move backwards
  *
- * Has three different scoring conditions:
- * 1) If the trajectory's x velocity is negative, return the penalty
- * 2) If the trajectory's x is low and the theta is also low, return the penalty.
- * 3) Otherwise, return a scaled version of the trajectory's theta.
+ * If the trajectory's x velocity is negative, return the penalty
  */
 class PreferForwardCritic: public dwb_local_planner::TrajectoryCritic
 {
 public:
   PreferForwardCritic() :
-      backwardCost_(1.0), forwardCost_(0.0), startTheta_(0.0), startRotationReached_(false) {}
+      backwardCost_(1.0), forwardCost_(0.0) {}
   void onInit() override;
-  bool prepare(const geometry_msgs::Pose2D& pose, const nav_2d_msgs::Twist2D& vel,
-               const geometry_msgs::Pose2D& goal, const nav_2d_msgs::Path2D& global_plan) override;
   double scoreTrajectory(const dwb_msgs::Trajectory2D& traj) override;
-  void reset() override;
 
 protected:
   double backwardCost_, forwardCost_;
-  double startTheta_;
-  bool startRotationReached_;
 };
 
 } /* namespace dwb_critics */

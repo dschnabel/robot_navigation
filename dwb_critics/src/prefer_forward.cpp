@@ -47,44 +47,14 @@ void PreferForwardCritic::onInit()
   critic_nh_.param("forward_cost", forwardCost_, 0.0);
 }
 
-bool PreferForwardCritic::prepare(const geometry_msgs::Pose2D& pose,
-        const nav_2d_msgs::Twist2D& vel,
-        const geometry_msgs::Pose2D& goal,
-        const nav_2d_msgs::Path2D& global_plan)
-{
-    if (!startRotationReached_) {
-        if (startTheta_ == 0.0) {
-            int index = global_plan.poses.size() < 10 ? global_plan.poses.size() : 10;
-            auto &p1 = global_plan.poses[0];
-            auto &p2 = global_plan.poses[index];
-            startTheta_ = atan2(p2.y-p1.y, p2.x-p1.x);
-        }
-        double diff = startTheta_ - pose.theta;
-        while (diff < -M_PI) diff += M_PI*2;
-        while (diff > M_PI) diff -= M_PI*2;
-        if (fabs(diff) < 0.2) {
-            startRotationReached_ = true;
-        }
-    }
-    return true;
-}
-
 double PreferForwardCritic::scoreTrajectory(const dwb_msgs::Trajectory2D& traj)
 {
   // backward motions bad on a robot without backward sensors
   if (traj.velocity.x < 0.0) {
-    return backwardCost_;
-  } else if (traj.velocity.x > 0.0 && !startRotationReached_) {
       return backwardCost_;
   } else {
       return forwardCost_;
   }
-}
-
-void PreferForwardCritic::reset()
-{
-    startRotationReached_ = false;
-    startTheta_ = 0.0;
 }
 
 } /* namespace dwb_critics */
