@@ -154,9 +154,22 @@ protected:
 
   void onLocalPlanningException(nav_core2::NavCore2ExceptionPtr e_ptr, const ros::Duration& planning_time)
   {
-    ROS_WARN_NAMED("Locomotor", "Local planning error. Creating new global plan.");
-    control_loop_timer_.stop();
-    requestGlobalCostmapUpdate();
+    int code = -1;
+    std::string message;
+    try {
+        std::rethrow_exception(e_ptr);
+    } catch (const nav_core2::NavCore2Exception& e) {
+        code = e.getResultCode();
+        message = e.what();
+    }
+    if (code == 7) {
+        ROS_ERROR_NAMED("Locomotor", "Fatal local planning error. Giving up.");
+        requestNavigationFailure(makeResultCode(locomotor_msgs::ResultCode::LOCAL_PLANNER, code, message));
+    } else {
+        ROS_WARN_NAMED("Locomotor", "Local planning error. Creating new global plan.");
+        control_loop_timer_.stop();
+        requestGlobalCostmapUpdate();
+    }
   }
 
   void onNavigationCompleted()
@@ -176,6 +189,9 @@ protected:
   void onNavigationFailure(const locomotor_msgs::ResultCode result)
   {
     control_loop_timer_.stop();
+
+    ROS_ERROR_NAMED("Locomotor", "Failure details: %s", result.message.c_str());
+
     as_.failNavigation(result);
   }
 

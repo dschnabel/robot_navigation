@@ -1,13 +1,6 @@
 #include <dwb_critics/rotate_to_start.h>
-#include <dwb_local_planner/trajectory_utils.h>
-#include <nav_2d_utils/parameters.h>
-#include <nav_core2/exceptions.h>
 #include <pluginlib/class_list_macros.h>
 #include <angles/angles.h>
-#include <string>
-#include <vector>
-
-const double EPSILON = 1E-5;
 
 PLUGINLIB_EXPORT_CLASS(dwb_critics::RotateToStartCritic, dwb_local_planner::TrajectoryCritic)
 

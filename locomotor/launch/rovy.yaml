@@ -164,11 +164,11 @@ DWBLocalPlanner:
   - RotateToGoal
   - RotateToStart
   - Oscillation
-#  - BaseObstacle
   - GoalAlign
   - PathAlign
   - PathDist
   - GoalDist
+  - Recovery
 
   # PreferForward critic
   PreferForward:
@@ -215,6 +215,10 @@ DWBLocalPlanner:
   PathDist:
     scale: 4.0
   
-  # GoalDist
+  # GoalDist critic
   GoalDist:
+    scale: 1.0
+
+  # Recovery critic
+  Recovery:
     scale: 1.0
