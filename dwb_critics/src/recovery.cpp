@@ -27,7 +27,7 @@ bool RecoveryCritic::prepare(const geometry_msgs::Pose2D& pose, const nav_2d_msg
     if (!stuck_) {
         if (vel_x <= 0.02 && chosen_x_ > 0.1) {
             stuck_counter_++;
-            if (stuck_counter_ > 3) {
+            if (stuck_counter_ > 4) {
                 stuck_counter_ = 0;
                 stuck_ = true;
                 stuck_pose_ = pose;

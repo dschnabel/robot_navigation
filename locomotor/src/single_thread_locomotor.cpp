@@ -66,6 +66,10 @@ public:
     locomotor_.initializeGlobalPlanners(main_ex_);
     locomotor_.initializeLocalCostmap(main_ex_);
     locomotor_.initializeLocalPlanners(main_ex_);
+
+    tele_sub_ = private_nh_.subscribe("/key_vel", 1, &SingleThreadLocomotor::keyboardCallback, this);
+    timer_ = private_nh_.createTimer(ros::Duration(0.5), &SingleThreadLocomotor::timerCallback, this, true);
+    was_started = false;
   }
 
   void setGoal(nav_2d_msgs::Pose2DStamped goal)
@@ -195,6 +199,24 @@ protected:
     as_.failNavigation(result);
   }
 
+  void keyboardCallback(const geometry_msgs::TwistConstPtr& msg) {
+      if (control_loop_timer_.hasStarted()) {
+          ROS_INFO_NAMED("Locomotor", "Manual drive activated. Stopping Loop.");
+          control_loop_timer_.stop();
+          was_started = true;
+      }
+      timer_.stop();
+      timer_.start();
+  }
+
+  void timerCallback(const ros::TimerEvent& event) {
+      if (was_started) {
+          ROS_INFO_NAMED("Locomotor", "Auto drive activated. Starting Loop.");
+          was_started = false;
+          requestGlobalCostmapUpdate();
+      }
+  }
+
   ros::NodeHandle private_nh_;
   // Locomotor Object
   Locomotor locomotor_;
@@ -209,6 +231,10 @@ protected:
 
   // Action Server
   LocomotorActionServer as_;
+
+  ros::Subscriber tele_sub_;
+  ros::Timer timer_;
+  bool was_started;
 };
 };  // namespace locomotor
 
