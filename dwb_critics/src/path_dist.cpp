@@ -41,7 +41,8 @@ namespace dwb_critics
 {
 bool PathDistCritic::prepare(const geometry_msgs::Pose2D& pose, const nav_2d_msgs::Twist2D& vel,
                              const geometry_msgs::Pose2D& goal,
-                             const nav_2d_msgs::Path2D& global_plan)
+                             const nav_2d_msgs::Path2D& global_plan,
+                             const size_t closest_index)
 {
   reset();
   const nav_core2::Costmap& costmap = *costmap_;

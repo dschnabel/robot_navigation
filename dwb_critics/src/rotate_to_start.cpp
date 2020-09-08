@@ -20,7 +20,8 @@ void RotateToStartCritic::reset()
 
 bool RotateToStartCritic::prepare(const geometry_msgs::Pose2D& pose, const nav_2d_msgs::Twist2D& vel,
                                  const geometry_msgs::Pose2D& goal,
-                                 const nav_2d_msgs::Path2D& global_plan)
+                                 const nav_2d_msgs::Path2D& global_plan,
+                                 const size_t closest_index)
 {
     if (!startRotationReached_) {
         if (start_yaw_ == 0.0) {

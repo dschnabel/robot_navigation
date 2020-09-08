@@ -233,13 +233,14 @@ void DWBLocalPlanner::prepare(const nav_2d_msgs::Pose2DStamped& pose, const nav_
 
   pub_.publishInputParams(costmap_->getInfo(), local_start_pose, velocity, local_goal_pose);
 
-  if (!testGlobalPathForObstacle(transformed_plan, local_start_pose)) {
+  size_t index = 0;
+  if (!testGlobalPathForObstacle(transformed_plan, local_start_pose, &index)) {
       throw nav_core2::PlannerException("Detected obstacle in path.");
   }
 
   for (TrajectoryCritic::Ptr critic : critics_)
   {
-    if (!critic->prepare(local_start_pose, velocity, local_goal_pose, transformed_plan))
+    if (!critic->prepare(local_start_pose, velocity, local_goal_pose, transformed_plan, index))
     {
       ROS_WARN_NAMED("DWBLocalPlanner", "Critic \"%s\" failed to prepare", critic->getName().c_str());
     }
@@ -544,10 +545,11 @@ geometry_msgs::Pose2D DWBLocalPlanner::transformPoseToLocal(const nav_2d_msgs::P
 }
 
 bool DWBLocalPlanner::testGlobalPathForObstacle(
-        const nav_2d_msgs::Path2D& globalPlan, const geometry_msgs::Pose2D& pose) {
+        const nav_2d_msgs::Path2D& globalPlan, const geometry_msgs::Pose2D& pose, size_t *index) {
 
     size_t maxPosition = globalPlan.poses.size() - 1;
     size_t startPosition = getClosestPointOnPath(globalPlan, maxPosition, pose);
+    *index = startPosition;
     const nav_core2::Costmap& costmap = *costmap_;
 
 #ifdef ROVY_VIZ

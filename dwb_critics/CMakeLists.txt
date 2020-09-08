@@ -43,6 +43,7 @@ add_library(${PROJECT_NAME}
     src/rotate_to_start.cpp
     src/twirling.cpp
     src/recovery.cpp
+    src/path_dragging.cpp
 )
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})

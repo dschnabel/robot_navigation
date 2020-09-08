@@ -160,15 +160,16 @@ DWBLocalPlanner:
   yaw_goal_tolerance: 0.07
 
   critics:
+  - PathDragging
   - PreferForward
   - RotateToGoal
   - RotateToStart
   - Oscillation
-  - GoalAlign
-  - PathAlign
-  - PathDist
-  - GoalDist
   - Recovery
+
+  # PathDragging critic
+  PathDragging:
+   scale: 1.0
 
   # PreferForward critic
   PreferForward:
@@ -194,29 +195,6 @@ DWBLocalPlanner:
     oscillation_reset_dist: 0.05
     oscillation_reset_angle: 0.2
     oscillation_reset_time: -1.0
-    scale: 1.0
-
-  # BaseObstacle critic
-  BaseObstacle:
-    sum_scores: false
-    scale: 0.005  
-
-  # GoalAlign critic
-  GoalAlign:
-    forward_point_distance: 0.125
-    scale: 1.0
-
-  # PathAlign critic
-  PathAlign:
-    forward_point_distance: 0.125
-    scale: 4.0
-
-  # PathDist critic
-  PathDist:
-    scale: 4.0
-  
-  # GoalDist critic
-  GoalDist:
     scale: 1.0
 
   # Recovery critic

@@ -131,7 +131,8 @@ void OscillationCritic::onInit()
 bool OscillationCritic::prepare(const geometry_msgs::Pose2D& pose,
                                 const nav_2d_msgs::Twist2D& vel,
                                 const geometry_msgs::Pose2D& goal,
-                                const nav_2d_msgs::Path2D& global_plan)
+                                const nav_2d_msgs::Path2D& global_plan,
+                                const size_t closest_index)
 {
   pose_ = pose;
   return true;

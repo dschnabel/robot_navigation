@@ -50,7 +50,8 @@ void GoalAlignCritic::onInit()
 
 bool GoalAlignCritic::prepare(const geometry_msgs::Pose2D& pose, const nav_2d_msgs::Twist2D& vel,
                               const geometry_msgs::Pose2D& goal,
-                              const nav_2d_msgs::Path2D& global_plan)
+                              const nav_2d_msgs::Path2D& global_plan,
+                              const size_t closest_index)
 {
   // we want the robot nose to be drawn to its final position
   // (before robot turns towards goal orientation), not the end of the
@@ -63,7 +64,7 @@ bool GoalAlignCritic::prepare(const geometry_msgs::Pose2D& pose, const nav_2d_ms
   target_poses.poses.back().x += forward_point_distance_ * cos(angle_to_goal);
   target_poses.poses.back().y += forward_point_distance_ * sin(angle_to_goal);
 
-  return GoalDistCritic::prepare(pose, vel, goal, target_poses);
+  return GoalDistCritic::prepare(pose, vel, goal, target_poses, closest_index);
 }
 
 double GoalAlignCritic::scorePose(const geometry_msgs::Pose2D& pose)

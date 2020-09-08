@@ -213,7 +213,8 @@ protected:
   ros::NodeHandle planner_nh_;
 
 private:
-  bool testGlobalPathForObstacle(const nav_2d_msgs::Path2D& globalPlan, const geometry_msgs::Pose2D& pose);
+  bool testGlobalPathForObstacle(const nav_2d_msgs::Path2D& globalPlan,
+          const geometry_msgs::Pose2D& pose, size_t *index);
   size_t getClosestPointOnPath(const nav_2d_msgs::Path2D& globalPlan, size_t maxPos,
           const geometry_msgs::Pose2D& pose);
   geometry_msgs::Pose2D getForwardPose(const geometry_msgs::Pose2D& pose, double distance);

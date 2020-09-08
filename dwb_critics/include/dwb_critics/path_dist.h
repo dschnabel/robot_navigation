@@ -46,7 +46,8 @@ class PathDistCritic: public MapGridCritic
 {
 public:
   bool prepare(const geometry_msgs::Pose2D& pose, const nav_2d_msgs::Twist2D& vel,
-               const geometry_msgs::Pose2D& goal, const nav_2d_msgs::Path2D& global_plan) override;
+               const geometry_msgs::Pose2D& goal, const nav_2d_msgs::Path2D& global_plan,
+               const size_t closest_index = 0) override;
 };
 
 }  // namespace dwb_critics

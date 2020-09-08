@@ -39,12 +39,13 @@
       </description>
     </class>
     <class type="dwb_critics::TwirlingCritic" base_class_type="dwb_local_planner::TrajectoryCritic">
-      <description>Penalize trajectories with rotational velocities
-      </description>
+      <description>Penalize trajectories with rotational velocities</description>
     </class>
     <class type="dwb_critics::RecoveryCritic" base_class_type="dwb_local_planner::TrajectoryCritic">
-      <description>Forces the commanded trajectories to follow current recovery behavior
-      </description>
+      <description>Forces the commanded trajectories to follow current recovery behavior</description>
+    </class>
+    <class type="dwb_critics::PathDraggingCritic" base_class_type="dwb_local_planner::TrajectoryCritic">
+      <description>Scores trajectories based on how close the robot aligns with the path</description>
     </class>
   </library>
 </class_libraries>
