@@ -21,7 +21,7 @@ public:
   void debrief(const nav_2d_msgs::Twist2D& cmd_vel) override;
 
 protected:
-  int stuck_counter_;
+  int stuck_counter_, stuck_counter_tolerance_;
   bool stuck_;
   geometry_msgs::Pose2D stuck_pose_;
   double chosen_x_;

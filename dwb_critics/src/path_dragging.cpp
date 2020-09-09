@@ -56,7 +56,7 @@ bool PathDraggingCritic::prepare(const geometry_msgs::Pose2D& pose, const nav_2d
 
         if (i != step) {
             double diff = fabs(angles::shortest_angular_distance(angle, firstAngle));
-            if (diff > 0.1) {
+            if (diff > 0.07) {
 //                printf("sharp angle (index=%d)!\n", i);
                 mode = MODE_SHARP_TURN;
                 break;
