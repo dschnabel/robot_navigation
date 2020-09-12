@@ -190,6 +190,8 @@ public:
   void publishPath(const nav_2d_msgs::Path2D& global_plan) { path_pub_.publishPath(global_plan); }
   void publishTwist(const nav_2d_msgs::Twist2DStamped& command) { twist_pub_.publishTwist(command); }
 
+  void setRecoveryMode(int mode) { recoveryMode_ = mode; };
+
 protected:
   /**
    * @defgroup ActualActions
@@ -235,6 +237,10 @@ protected:
   // Publishers
   PathPublisher path_pub_;
   TwistPublisher twist_pub_;
+
+private:
+  void sendRotationTwist(Executor& result_ex, LocalPlanCallback cb);
+  int recoveryMode_;
 };
 }  // namespace locomotor
 

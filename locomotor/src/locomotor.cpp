@@ -54,7 +54,8 @@ Locomotor::Locomotor(const ros::NodeHandle& private_nh) :
   local_planner_mux_("nav_core2", "nav_core2::LocalPlanner",
                      "local_planner_namespaces", "dwb_local_planner::DWBLocalPlanner",
                      "current_local_planner", "switch_local_planner"),
-  private_nh_(private_nh), path_pub_(private_nh_), twist_pub_(private_nh_)
+  private_nh_(private_nh), path_pub_(private_nh_), twist_pub_(private_nh_),
+  recoveryMode_(0)
 {
   tf_ = std::make_shared<tf2_ros::Buffer>();
   tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_);
@@ -210,6 +211,48 @@ void Locomotor::makeLocalPlan(Executor& result_ex, LocalPlanCallback cb, Planner
     return;
   }
 
+  // recovery procedure: rotate 360 degrees on the spot to clear local costmap
+  if (recoveryMode_ > 0) {
+      static double recoveryStartX = 0, recoveryStartY = 0, recoveryStartTheta = 0;
+      if (recoveryMode_ == 1) {
+          double dist_square =
+                  pow(state_.local_pose.pose.x - recoveryStartX, 2.0) +
+                  pow(state_.local_pose.pose.y - recoveryStartY, 2.0);
+          if (dist_square < 0.01) {
+              try {
+                  throw nav_core2::OccupiedStartException("No valid path found, even after rotation");
+              } catch (const nav_core2::PlannerException& e) {
+                  if (fail_cb)
+                      result_ex.addCallback(std::bind(fail_cb, std::current_exception(), ros::Duration(0)));
+              }
+          }
+
+          recoveryStartX = state_.local_pose.pose.x;
+          recoveryStartY = state_.local_pose.pose.y;
+          recoveryStartTheta = state_.local_pose.pose.theta;
+          recoveryMode_ = 2;
+      }
+      if (recoveryMode_ == 2) {
+          sendRotationTwist(result_ex, cb);
+          if (fabs(state_.local_pose.pose.theta - recoveryStartTheta) > M_PI) {
+              recoveryMode_ = 3;
+          }
+      }
+      if (recoveryMode_ == 3) {
+          sendRotationTwist(result_ex, cb);
+          if (fabs(state_.local_pose.pose.theta - recoveryStartTheta) < 0.08) {
+              recoveryMode_ = 0;
+              try {
+                  throw nav_core2::PlannerException("Forcing path recalculation");
+              } catch (const nav_core2::PlannerException& e) {
+                  if (fail_cb)
+                      result_ex.addCallback(std::bind(fail_cb, std::current_exception(), ros::Duration(0)));
+              }
+          }
+      }
+      return;
+  }
+
   // Actual Control
   // Extra Scope for Mutex
   {
@@ -251,6 +294,13 @@ nav_2d_msgs::Pose2DStamped Locomotor::getRobotPose(const std::string& target_fra
     throw nav_core2::PlannerTFException("Could not get pose into costmap frame!");
   }
   return transformed_pose;
+}
+
+void Locomotor::sendRotationTwist(Executor& result_ex, LocalPlanCallback cb) {
+    nav_2d_msgs::Twist2DStamped cmd_vel;
+    cmd_vel.header.stamp = ros::Time::now();
+    cmd_vel.velocity.theta = 1;
+    if (cb) result_ex.addCallback(std::bind(cb, cmd_vel, ros::Duration(0)));
 }
 
 }  // namespace locomotor

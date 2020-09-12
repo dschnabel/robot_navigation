@@ -69,11 +69,13 @@ public:
 
     tele_sub_ = private_nh_.subscribe("/key_vel", 1, &SingleThreadLocomotor::keyboardCallback, this);
     timer_ = private_nh_.createTimer(ros::Duration(0.5), &SingleThreadLocomotor::timerCallback, this, true);
-    was_started = false;
+    was_started_ = false;
+    local_plannig_exception_count_ = 0;
   }
 
   void setGoal(nav_2d_msgs::Pose2DStamped goal)
   {
+    local_plannig_exception_count_ = 0;
     locomotor_.setGoal(goal);
     locomotor_.requestGlobalCostmapUpdate(main_ex_, main_ex_,
       std::bind(&SingleThreadLocomotor::onGlobalCostmapUpdate, this, std::placeholders::_1),
@@ -154,6 +156,7 @@ protected:
                      controller_frequency_, planning_time.toSec(), desired_control_duration_.toSec());
     }
     as_.publishFeedback(locomotor_.getNavigationState());
+    local_plannig_exception_count_ = 0;
   }
 
   void onLocalPlanningException(nav_core2::NavCore2ExceptionPtr e_ptr, const ros::Duration& planning_time)
@@ -169,6 +172,9 @@ protected:
     if (code == 7) {
         ROS_ERROR_NAMED("Locomotor", "Fatal local planning error. Giving up.");
         requestNavigationFailure(makeResultCode(locomotor_msgs::ResultCode::LOCAL_PLANNER, code, message));
+    } else if (local_plannig_exception_count_++ > 10) {
+        ROS_WARN_NAMED("Locomotor", "Attempt rotation for recovery.");
+        locomotor_.setRecoveryMode(1);
     } else {
         ROS_WARN_NAMED("Locomotor", "Local planning error. Creating new global plan.");
         control_loop_timer_.stop();
@@ -203,16 +209,16 @@ protected:
       if (control_loop_timer_.hasStarted()) {
           ROS_INFO_NAMED("Locomotor", "Manual drive activated. Stopping Loop.");
           control_loop_timer_.stop();
-          was_started = true;
+          was_started_ = true;
       }
       timer_.stop();
       timer_.start();
   }
 
   void timerCallback(const ros::TimerEvent& event) {
-      if (was_started) {
+      if (was_started_) {
           ROS_INFO_NAMED("Locomotor", "Auto drive activated. Starting Loop.");
-          was_started = false;
+          was_started_ = false;
           requestGlobalCostmapUpdate();
       }
   }
@@ -234,7 +240,8 @@ protected:
 
   ros::Subscriber tele_sub_;
   ros::Timer timer_;
-  bool was_started;
+  bool was_started_;
+  int local_plannig_exception_count_;
 };
 };  // namespace locomotor
 
