@@ -137,8 +137,8 @@ DWBLocalPlanner:
 
   trajectory_generator_name: dwb_plugins::LimitedAccelGenerator
   # velocities
-  min_vel_x: -0.3
-  max_vel_x: 0.3
+  min_vel_x: -0.4
+  max_vel_x: 0.4
   min_vel_y: 0.0
   max_vel_y: 0.0
   max_vel_theta: 2.0
@@ -152,7 +152,7 @@ DWBLocalPlanner:
   decel_lim_theta: -10.948097518
   # absolute speeds (in either direction)
   min_speed_xy: 0.1
-  max_speed_xy: 0.3
+  max_speed_xy: 0.4
   min_speed_theta: 0.3
 
   goal_checker_name: dwb_plugins::SimpleGoalChecker
