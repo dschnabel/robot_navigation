@@ -143,11 +143,11 @@ DWBLocalPlanner:
   max_vel_y: 0.0
   max_vel_theta: 2.0
   # acceleration
-  acc_lim_x: 1.3
+  acc_lim_x: 1.2
   acc_lim_y: 0.0
   acc_lim_theta: 8.731380878
   # deceleration
-  decel_lim_x: -1.3
+  decel_lim_x: -1.2
   decel_lim_y: 0.0
   decel_lim_theta: -10.948097518
   # absolute speeds (in either direction)
