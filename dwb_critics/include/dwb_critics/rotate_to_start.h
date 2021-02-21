@@ -21,6 +21,7 @@ public:
 protected:
   bool startRotationReached_;
   double start_yaw_;
+  double goal_yaw_;
   double xy_goal_tolerance_;
   double xy_goal_tolerance_sq_;  ///< Cached squared tolerance
 };

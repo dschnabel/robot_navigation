@@ -23,7 +23,7 @@ void RotateToStartCritic::onInit()
 void RotateToStartCritic::reset()
 {
     startRotationReached_ = false;
-    start_yaw_ = 0.0;
+    goal_yaw_ = 0.0;
 }
 
 bool RotateToStartCritic::prepare(const geometry_msgs::Pose2D& pose, const nav_2d_msgs::Twist2D& vel,
@@ -32,18 +32,20 @@ bool RotateToStartCritic::prepare(const geometry_msgs::Pose2D& pose, const nav_2
                                  const size_t closest_index)
 {
     if (!startRotationReached_) {
-        if (start_yaw_ == 0.0) {
+        if (goal_yaw_ == 0.0) {
             int index = global_plan.poses.size() < 10 ? global_plan.poses.size() : 10;
             auto &p1 = global_plan.poses[0];
             auto &p2 = global_plan.poses[index];
-            start_yaw_ = atan2(p2.y-p1.y, p2.x-p1.x);
-            if (isnan(start_yaw_)) {
-                start_yaw_ = pose.theta;
+            goal_yaw_ = atan2(p2.y-p1.y, p2.x-p1.x);
+            if (isnan(goal_yaw_)) {
+                goal_yaw_ = pose.theta;
             }
         }
 
+        start_yaw_ = pose.theta;
+
         if (hypot_sq(pose.x - goal.x, pose.y - goal.y) <= xy_goal_tolerance_sq_
-                || fabs(angles::shortest_angular_distance(pose.theta, start_yaw_)) < 0.2) {
+                || fabs(angles::shortest_angular_distance(pose.theta, goal_yaw_)) < 0.2) {
             startRotationReached_ = true;
         }
     }
@@ -62,7 +64,15 @@ double RotateToStartCritic::scoreTrajectory(const dwb_msgs::Trajectory2D& traj)
   }
 
   double end_yaw = traj.poses.back().theta;
-  return fabs(angles::shortest_angular_distance(end_yaw, start_yaw_));
+  double score = fabs(angles::shortest_angular_distance(end_yaw, goal_yaw_));
+
+  if (angles::shortest_angular_distance(start_yaw_, goal_yaw_) > 0) {
+      if (traj.velocity.theta < 1.0) score += 100;
+  } else {
+      if (traj.velocity.theta > -1.0) score += 100;
+  }
+
+  return score;
 }
 
 } /* namespace dwb_critics */
