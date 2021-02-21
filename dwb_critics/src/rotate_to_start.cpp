@@ -1,4 +1,5 @@
 #include <dwb_critics/rotate_to_start.h>
+#include <nav_2d_utils/parameters.h>
 #include <pluginlib/class_list_macros.h>
 #include <angles/angles.h>
 
@@ -7,9 +8,16 @@ PLUGINLIB_EXPORT_CLASS(dwb_critics::RotateToStartCritic, dwb_local_planner::Traj
 namespace dwb_critics
 {
 
+inline double hypot_sq(double dx, double dy)
+{
+  return dx * dx + dy * dy;
+}
+
 void RotateToStartCritic::onInit()
 {
-  reset();
+    xy_goal_tolerance_ = nav_2d_utils::searchAndGetParam(critic_nh_, "xy_goal_tolerance", 0.25);
+    xy_goal_tolerance_sq_ = xy_goal_tolerance_ * xy_goal_tolerance_;
+    reset();
 }
 
 void RotateToStartCritic::reset()
@@ -29,12 +37,17 @@ bool RotateToStartCritic::prepare(const geometry_msgs::Pose2D& pose, const nav_2
             auto &p1 = global_plan.poses[0];
             auto &p2 = global_plan.poses[index];
             start_yaw_ = atan2(p2.y-p1.y, p2.x-p1.x);
+            if (isnan(start_yaw_)) {
+                start_yaw_ = pose.theta;
+            }
         }
 
-        if (fabs(angles::shortest_angular_distance(pose.theta, start_yaw_)) < 0.2) {
+        if (hypot_sq(pose.x - goal.x, pose.y - goal.y) <= xy_goal_tolerance_sq_
+                || fabs(angles::shortest_angular_distance(pose.theta, start_yaw_)) < 0.2) {
             startRotationReached_ = true;
         }
     }
+
     return true;
 }
 
