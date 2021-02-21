@@ -78,6 +78,7 @@ bool RotateToGoalCritic::prepare(const geometry_msgs::Pose2D& pose, const nav_2d
   in_window_ = in_window_ || dxy_sq <= xy_goal_tolerance_sq_;
   current_xy_speed_sq_ = hypot_sq(vel.x, vel.y);
   rotating_ = rotating_ || (in_window_ && current_xy_speed_sq_ <= stopped_xy_velocity_sq_);
+  start_yaw_ = pose.theta;
   goal_yaw_ = goal.theta;
   return true;
 }
@@ -125,7 +126,16 @@ double RotateToGoalCritic::scoreRotation(const dwb_msgs::Trajectory2D& traj)
   {
     end_yaw = traj.poses.back().theta;
   }
-  return fabs(angles::shortest_angular_distance(end_yaw, goal_yaw_));
+
+  double score = fabs(angles::shortest_angular_distance(end_yaw, goal_yaw_));
+
+  if (angles::shortest_angular_distance(start_yaw_, goal_yaw_) > 0) {
+      if (traj.velocity.theta < 1.0) score += 100;
+  } else {
+      if (traj.velocity.theta > -1.0) score += 100;
+  }
+
+  return score;
 }
 
 } /* namespace dwb_critics */

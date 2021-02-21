@@ -89,6 +89,7 @@ public:
 
 protected:
   bool in_window_, rotating_;
+  double start_yaw_;
   double goal_yaw_;
   double xy_goal_tolerance_;
   double xy_goal_tolerance_sq_;  ///< Cached squared tolerance
