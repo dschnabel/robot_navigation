@@ -200,6 +200,7 @@ protected:
     ROS_INFO_NAMED("Locomotor", "Plan completed! Stopping.");
     control_loop_timer_.stop();
 
+    // notify other services that navigation is complete
     std::string filename = std::string(ACTION_PATH ACTION_PREFIX_DONE);
     std::ofstream doneFile(filename);
     doneFile.close();
@@ -216,6 +217,11 @@ protected:
   void onNavigationFailure(const locomotor_msgs::ResultCode result)
   {
     control_loop_timer_.stop();
+
+    // notify other services that navigation is complete
+    std::string filename = std::string(ACTION_PATH ACTION_PREFIX_DONE);
+    std::ofstream doneFile(filename);
+    doneFile.close();
 
     ROS_ERROR_NAMED("Locomotor", "Failure details: %s", result.message.c_str());
 
