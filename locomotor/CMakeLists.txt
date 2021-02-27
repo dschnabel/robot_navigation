@@ -74,3 +74,4 @@ install(DIRECTORY include/${PROJECT_NAME}/
         DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
 )
 catkin_install_python(PROGRAMS scripts/send_action.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+set(CMAKE_CXX_FLAGS "-lrovy_ros_helper ${CMAKE_CXX_FLAGS}")

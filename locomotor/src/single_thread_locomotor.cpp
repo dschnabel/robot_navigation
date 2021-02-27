@@ -36,14 +36,8 @@
 #include <nav_2d_utils/conversions.h>
 #include <string>
 #include <thread>
-#include <sys/inotify.h>
 #include <actionlib/client/simple_action_client.h>
-
-#define EVENT_SIZE (sizeof(struct inotify_event))
-#define EVENT_BUF_LEN (1024 * (EVENT_SIZE + 16 ))
-#define ACTION_PATH "/tmp/action/"
-#define ACTION_PREFIX_SET "goal_set"
-#define ACTION_PREFIX_DONE "goal_done"
+#include <rovy_ros_helper.h>
 
 namespace locomotor
 {
@@ -65,7 +59,7 @@ public:
   explicit SingleThreadLocomotor(const ros::NodeHandle& private_nh)
     : private_nh_(private_nh), locomotor_(private_nh_), main_ex_(private_nh_, false),
       as_(private_nh_, std::bind(&SingleThreadLocomotor::setGoal, this, std::placeholders::_1)),
-      ac_("/locomotor/navigate", true)
+      ac_("/locomotor/navigate", true), rovyActionId_(0)
   {
     private_nh_.param("controller_frequency", controller_frequency_, controller_frequency_);
     desired_control_duration_ = ros::Duration(1.0 / controller_frequency_);
@@ -82,8 +76,11 @@ public:
     was_started_ = false;
     local_plannig_exception_count_ = 0;
 
-    std::thread goalActionListener(&SingleThreadLocomotor::goalActionListenerThread, this);
-    goalActionListener.detach();
+    RovyRosHelper &rosHelper = RovyRosHelper::getInstance(NULL, &private_nh_);
+    rosHelper.receiverRegister<rovy::GoalAction, rovy::GoalSetCallback>(
+            std::bind(&SingleThreadLocomotor::goalSetCallback, this,
+                    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)
+    );
   }
 
   void setGoal(nav_2d_msgs::Pose2DStamped goal)
@@ -201,9 +198,7 @@ protected:
     control_loop_timer_.stop();
 
     // notify other services that navigation is complete
-    std::string filename = std::string(ACTION_PATH ACTION_PREFIX_DONE);
-    std::ofstream doneFile(filename);
-    doneFile.close();
+    publishDoneMsg(rovyActionId_, 1);
 
     nav_2d_msgs::Twist2DStamped cmd_vel;
     cmd_vel.header.stamp = ros::Time::now();
@@ -219,9 +214,7 @@ protected:
     control_loop_timer_.stop();
 
     // notify other services that navigation is complete
-    std::string filename = std::string(ACTION_PATH ACTION_PREFIX_DONE);
-    std::ofstream doneFile(filename);
-    doneFile.close();
+    publishDoneMsg(rovyActionId_, 0);
 
     ROS_ERROR_NAMED("Locomotor", "Failure details: %s", result.message.c_str());
 
@@ -246,77 +239,28 @@ protected:
       }
   }
 
-  void goalActionListenerThread() {
-      system("rm -f " ACTION_PATH ACTION_PREFIX_SET "*");
+  void goalSetCallback(uint16_t id, float x, float y, float theta) {
+      rovyActionId_ = id;
 
-      int notifyFd = inotify_init();
-      if ( notifyFd < 0 ) perror("inotify_init");
-      int watch = inotify_add_watch(notifyFd, ACTION_PATH, IN_CREATE);
+      locomotor_msgs::NavigateToPoseGoal goal;
+      goal.goal.header.frame_id = "map";
 
-      while (ros::ok()) {
-          // blocking read
-          char notifyBuffer[EVENT_BUF_LEN];
-          int length = read(notifyFd, notifyBuffer, EVENT_BUF_LEN);
-          if (length < 0) return;
-
-          std::string filename;
-          int i = 0;
-          while (i < length) {
-              struct inotify_event *event = (struct inotify_event *)&notifyBuffer[i];
-              if (event->len) {
-                  if ((event->mask & IN_CREATE) &&
-                          (strncmp(event->name, ACTION_PREFIX_SET, strlen(ACTION_PREFIX_SET)) == 0)) {
-                      filename = std::string(ACTION_PATH) + event->name;
-                  }
-              }
-              i += EVENT_SIZE + event->len;
-          }
-
-          if (filename.empty()) continue;
-
-          std::string xStr, yStr, thetaStr;
-          int counter = 0;
-
-          while (xStr.empty() || yStr.empty() || thetaStr.empty()) {
-              usleep(1000);
-              std::ifstream actionFile(filename);
-              if (!actionFile.good()) continue;
-
-              std::getline(actionFile, xStr, ',');
-              std::getline(actionFile, yStr, ',');
-              std::getline(actionFile, thetaStr, ',');
-
-              actionFile.close();
-
-              if (counter++ > 200) break;
-          }
-
-          if (counter >= 200) {
-              ROS_INFO_NAMED("Locomotor", "bad action file! Ignoring action...");
-              continue;
-          }
-
-          system("rm -f " ACTION_PATH ACTION_PREFIX_SET "*");
-
-          locomotor_msgs::NavigateToPoseGoal goal;
-          goal.goal.header.frame_id = "map";
-
-          if (xStr.compare("#") == 0 || yStr.compare("#") == 0) {
-              nav_2d_msgs::Pose2DStamped currentPose = locomotor_.getGlobalRobotPose();
-              goal.goal.pose.x = currentPose.pose.x;
-              goal.goal.pose.y = currentPose.pose.y;
-              goal.goal.pose.theta = currentPose.pose.theta + (std::stod(thetaStr) * M_PI / 180.0);
-          } else {
-              goal.goal.pose.x = std::stod(xStr);
-              goal.goal.pose.y = std::stod(yStr);
-              goal.goal.pose.theta = (std::stod(thetaStr) * M_PI / 180.0);
-          }
-
-          ac_.sendGoal(goal);
+      if (x == 0 && y == 0) {
+          nav_2d_msgs::Pose2DStamped currentPose = locomotor_.getGlobalRobotPose();
+          goal.goal.pose.x = currentPose.pose.x;
+          goal.goal.pose.y = currentPose.pose.y;
+          goal.goal.pose.theta = currentPose.pose.theta + (theta * M_PI / 180.0);
+      } else {
+          goal.goal.pose.x = x;
+          goal.goal.pose.y = y;
+          goal.goal.pose.theta = (theta * M_PI / 180.0);
       }
 
-      inotify_rm_watch(notifyFd, watch);
-      close(notifyFd);
+      ac_.sendGoal(goal);
+  }
+
+  void publishDoneMsg(uint16_t id, int8_t status) {
+      RovyRosHelper::getInstance().done<rovy::GoalAction>(id, status);
   }
 
   ros::NodeHandle private_nh_;
@@ -339,6 +283,7 @@ protected:
   bool was_started_;
   int local_plannig_exception_count_;
   actionlib::SimpleActionClient<locomotor_msgs::NavigateToPoseAction> ac_;
+  int rovyActionId_;
 };
 };  // namespace locomotor
 

@@ -50,6 +50,8 @@
                                     <listOptionValue builtIn="false" value="/home/daniel/pi4/projects/rovy-remote/ros_includes"/>
                                     									
                                     <listOptionValue builtIn="false" value="/home/daniel/pi4/projects/rovy-remote/install/include"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/rovy-ros-helper/include}&quot;"/>
                                     								
                                 </option>
                                 								
