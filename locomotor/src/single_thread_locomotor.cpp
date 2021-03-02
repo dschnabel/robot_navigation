@@ -198,7 +198,7 @@ protected:
     control_loop_timer_.stop();
 
     // notify other services that navigation is complete
-    publishDoneMsg(rovyActionId_, 1);
+    publishDoneMsg(rovyActionId_, rovy::status::OK);
 
     nav_2d_msgs::Twist2DStamped cmd_vel;
     cmd_vel.header.stamp = ros::Time::now();
@@ -214,7 +214,7 @@ protected:
     control_loop_timer_.stop();
 
     // notify other services that navigation is complete
-    publishDoneMsg(rovyActionId_, 0);
+    publishDoneMsg(rovyActionId_, rovy::status::SUBSCRIBER_ERR);
 
     ROS_ERROR_NAMED("Locomotor", "Failure details: %s", result.message.c_str());
 
