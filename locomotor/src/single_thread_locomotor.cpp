@@ -79,7 +79,8 @@ public:
     RovyRosHelper &rosHelper = RovyRosHelper::getInstance(NULL, &private_nh_);
     rosHelper.receiverRegister<rovy::GoalAction, rovy::GoalSetCallback>(
             std::bind(&SingleThreadLocomotor::goalSetCallback, this,
-                    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)
+                    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+                    std::placeholders::_4, std::placeholders::_5)
     );
   }
 
@@ -239,17 +240,22 @@ protected:
       }
   }
 
-  void goalSetCallback(uint16_t id, float x, float y, float theta) {
+  void goalSetCallback(uint16_t id, int8_t goalType, float x, float y, float theta) {
       rovyActionId_ = id;
 
       locomotor_msgs::NavigateToPoseGoal goal;
       goal.goal.header.frame_id = "map";
 
-      if (x == 0 && y == 0) {
+      if (goalType == rovy::goal_type::ROTATE_ANGLE) {
           nav_2d_msgs::Pose2DStamped currentPose = locomotor_.getGlobalRobotPose();
           goal.goal.pose.x = currentPose.pose.x;
           goal.goal.pose.y = currentPose.pose.y;
           goal.goal.pose.theta = currentPose.pose.theta + (theta * M_PI / 180.0);
+      } else if (goalType == rovy::goal_type::ROTATE_180) {
+          nav_2d_msgs::Pose2DStamped currentPose = locomotor_.getGlobalRobotPose();
+          goal.goal.pose.x = currentPose.pose.x;
+          goal.goal.pose.y = currentPose.pose.y;
+          goal.goal.pose.theta = currentPose.pose.theta + (180 * M_PI / 180.0);
       } else {
           goal.goal.pose.x = x;
           goal.goal.pose.y = y;
