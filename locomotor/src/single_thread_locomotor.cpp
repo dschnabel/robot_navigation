@@ -38,6 +38,7 @@
 #include <thread>
 #include <actionlib/client/simple_action_client.h>
 #include <rovy_ros_helper.h>
+#include <nav_grid/coordinate_conversion.h>
 
 namespace locomotor
 {
@@ -241,32 +242,86 @@ protected:
   }
 
   void goalSetCallback(uint16_t id, int8_t goalType, float x, float y, float theta) {
-      rovyActionId_ = id;
-
       locomotor_msgs::NavigateToPoseGoal goal;
       goal.goal.header.frame_id = "map";
 
-      if (goalType == rovy::goal_type::ROTATE_ANGLE) {
-          nav_2d_msgs::Pose2DStamped currentPose = locomotor_.getGlobalRobotPose();
+      nav_2d_msgs::Pose2DStamped currentPose = locomotor_.getGlobalRobotPose();
+
+      if (goalType == rovy::goal_type::CUSTOM) {
+          goal.goal.pose.x = x;
+          goal.goal.pose.y = y;
+          goal.goal.pose.theta = (theta * M_PI / 180.0);
+      } else if (goalType == rovy::goal_type::ROTATE_ANGLE) {
           goal.goal.pose.x = currentPose.pose.x;
           goal.goal.pose.y = currentPose.pose.y;
           goal.goal.pose.theta = currentPose.pose.theta + (theta * M_PI / 180.0);
       } else if (goalType == rovy::goal_type::ROTATE_180) {
-          nav_2d_msgs::Pose2DStamped currentPose = locomotor_.getGlobalRobotPose();
           goal.goal.pose.x = currentPose.pose.x;
           goal.goal.pose.y = currentPose.pose.y;
           goal.goal.pose.theta = currentPose.pose.theta + (180 * M_PI / 180.0);
+      } else if (goalType == rovy::goal_type::FORWARD) {
+          nav_core2::Costmap::Ptr costmap = locomotor_.getLocalCostmap();
+          geometry_msgs::Pose2D forward_pose;
+          unsigned int cell_x, cell_y;
+          unsigned char cost;
+          float distance = 0.1;
+          bool withinGrid;
+
+          // get furthest possible distance we can travel in a straight line
+          do {
+              distance += 0.1;
+              forward_pose = getForwardPose(currentPose.pose, distance);
+              withinGrid = worldToGridBounded(costmap->getInfo(), forward_pose.x, forward_pose.y, cell_x, cell_y);
+              cost = (*costmap)(cell_x, cell_y);
+              ROS_INFO_NAMED("Locomotor", "d: %f, cell_x: %d, cell_y: %d, cost: %d, withinGrid: %d",
+                      distance, cell_x, cell_y, cost, withinGrid);
+          } while (withinGrid && cost != costmap->LETHAL_OBSTACLE
+                  && cost != costmap->NO_INFORMATION);
+
+          if (distance > 0.3) {
+              distance -= 0.3;
+              forward_pose = getForwardPose(currentPose.pose, distance);
+          }
+
+          // verify goal using global planner
+          bool goodGoal = false;
+          do {
+              try {
+                  nav_2d_msgs::Pose2DStamped p;
+                  p.header = currentPose.header;
+                  p.pose = forward_pose;
+                  locomotor_.getCurrentGlobalPlanner().makePlan(currentPose, p);
+                  goodGoal = true;
+              } catch (const nav_core2::PlannerException& e) {
+                  ROS_INFO_NAMED("Locomotor", "Bad goal!!! (distance: %f)", distance);
+                  distance -= 0.1;
+                  forward_pose = getForwardPose(currentPose.pose, distance);
+              }
+          } while (!goodGoal && distance > 0);
+
+          goal.goal.pose.x = forward_pose.x;
+          goal.goal.pose.y = forward_pose.y;
+          goal.goal.pose.theta = forward_pose.theta;
       } else {
-          goal.goal.pose.x = x;
-          goal.goal.pose.y = y;
-          goal.goal.pose.theta = (theta * M_PI / 180.0);
+          ROS_INFO_NAMED("Locomotor", "Unknown goal type.");
+          return;
       }
 
+      rovyActionId_ = id;
       ac_.sendGoal(goal);
   }
 
   void publishDoneMsg(uint16_t id, int8_t status) {
       RovyRosHelper::getInstance().done<rovy::GoalAction>(id, status);
+  }
+
+  // distance (in meters)
+  geometry_msgs::Pose2D getForwardPose(const geometry_msgs::Pose2D& pose, double distance) {
+      geometry_msgs::Pose2D forward_pose;
+      forward_pose.x = pose.x + distance * cos(pose.theta);
+      forward_pose.y = pose.y + distance * sin(pose.theta);
+      forward_pose.theta = pose.theta;
+      return forward_pose;
   }
 
   ros::NodeHandle private_nh_;
